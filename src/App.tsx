@@ -10,7 +10,8 @@ import { useOnlineStatus } from './hooks/useOnlineStatus'
 import { currentMonth } from './lib/dates'
 import { createId } from './lib/id'
 import { sampleTransactions } from './lib/sample'
-import { isCategoryList, isTransactionList } from './lib/stats'
+import { totals } from './lib/stats'
+import { parseCategoryList, parseTransactionList } from './lib/validation'
 import { DEFAULT_CATEGORIES, FALLBACK_CATEGORY, type Category, type Transaction, type TransactionDraft, type TxType } from './types'
 
 type View = 'resumen' | 'historial' | 'graficas' | 'ajustes'
@@ -23,8 +24,8 @@ const NAV: { id: View; label: string; icon: string }[] = [
 ]
 
 export default function App() {
-  const [transactions, setTransactions] = useLocalStorage<Transaction[]>('control-gastos:movimientos:v1', [], isTransactionList)
-  const [categories, setCategories] = useLocalStorage<Category[]>('control-gastos:categorias:v1', DEFAULT_CATEGORIES, isCategoryList)
+  const [transactions, setTransactions] = useLocalStorage<Transaction[]>('control-gastos:movimientos:v1', [], parseTransactionList)
+  const [categories, setCategories] = useLocalStorage<Category[]>('control-gastos:categorias:v1', DEFAULT_CATEGORIES, parseCategoryList)
   const [view, setView] = useState<View>('resumen')
   const [month, setMonth] = useState(currentMonth)
   const [dialog, setDialog] = useState<{ open: boolean; tx: Transaction | null; type: TxType }>({ open: false, tx: null, type: 'gasto' })
@@ -169,6 +170,7 @@ export default function App() {
         transaction={dialog.tx}
         initialType={dialog.type}
         categories={categories}
+        balance={totals(transactions.filter((t) => t.id !== dialog.tx?.id)).saldo}
         onSave={save}
         onDelete={remove}
         onClose={close}

@@ -73,7 +73,7 @@ export function HistoryView({ transactions, categories, onSelect }: Props) {
               <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
             ))}
           </select>
-          <input type="search" placeholder="Buscar descripción" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Buscar" />
+          <input type="search" placeholder="Buscar descripción" maxLength={80} value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Buscar" />
         </div>
       </div>
 

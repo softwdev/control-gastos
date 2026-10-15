@@ -58,25 +58,3 @@ export function byCategory(list: Transaction[], categories: Category[], type: Tx
 export function sortByDateDesc(list: Transaction[]): Transaction[] {
   return [...list].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
 }
-
-export function isTransactionList(value: unknown): value is Transaction[] {
-  return (
-    Array.isArray(value) &&
-    value.every(
-      (t) =>
-        typeof t === 'object' &&
-        t !== null &&
-        typeof (t as Transaction).id === 'string' &&
-        typeof (t as Transaction).amount === 'number' &&
-        ((t as Transaction).type === 'ingreso' || (t as Transaction).type === 'gasto'),
-    )
-  )
-}
-
-export function isCategoryList(value: unknown): value is Category[] {
-  return (
-    Array.isArray(value) &&
-    value.length > 0 &&
-    value.every((c) => typeof c === 'object' && c !== null && typeof (c as Category).id === 'string' && typeof (c as Category).name === 'string')
-  )
-}

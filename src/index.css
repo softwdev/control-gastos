@@ -1366,3 +1366,63 @@ svg {
     transition: none !important;
   }
 }
+
+/* ---------- Validación de formularios ---------- */
+
+.field abbr {
+  color: var(--danger);
+  text-decoration: none;
+}
+
+.field-error {
+  display: block;
+  color: var(--danger);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.field-warning {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fff4d6;
+  color: #5c4300;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.form-summary {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.field input[aria-invalid='true'],
+.cat-form__row input[aria-invalid='true'] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger);
+}
+
+.amount-input.is-invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger);
+}
+
+.cat-grid.is-invalid .cat-opt > span {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--line));
+}
+
+@media (prefers-color-scheme: dark) {
+  .field-warning {
+    background: #3a2d10;
+    color: #ffd98a;
+  }
+}
+
+.field .amount-input input[aria-invalid='true'] {
+  border: none;
+  box-shadow: none;
+}

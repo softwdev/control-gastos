@@ -1,3 +1,5 @@
+import { fetchBalance } from '../data/gastos'
+import { useRemoteQuery } from '../hooks/useRemoteQuery'
 import { formatMonthLong } from '../lib/dates'
 import { formatMoney } from '../lib/money'
 import { byCategory, inMonth, sortByDateDesc, totals } from '../lib/stats'
@@ -16,7 +18,9 @@ interface Props {
 }
 
 export function SummaryView({ transactions, categories, month, onMonth, onSelect, onGo }: Props) {
-  const all = totals(transactions)
+  // Saldo disponible: se consulta en la vista cg_saldo; sin conexión se calcula en el dispositivo.
+  const remoteBalance = useRemoteQuery('saldo', fetchBalance)
+  const all = { saldo: remoteBalance ?? totals(transactions).saldo }
   const monthList = inMonth(transactions, month)
   const m = totals(monthList)
   const recent = sortByDateDesc(transactions).slice(0, 5)
@@ -33,7 +37,9 @@ export function SummaryView({ transactions, categories, month, onMonth, onSelect
         <p className="balance__hint">
           {all.saldo < 0
             ? 'Has gastado más de lo que has registrado como ingresos.'
-            : `Total de ingresos menos gastos registrados.`}
+            : remoteBalance !== null
+              ? 'Total de ingresos menos gastos, calculado en Supabase.'
+              : 'Total de ingresos menos gastos registrados en este dispositivo.'}
         </p>
       </section>
 

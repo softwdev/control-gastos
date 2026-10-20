@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { fetchCategoryTotals, fetchMonthlySeries } from '../data/gastos'
+import { useRemoteQuery } from '../hooks/useRemoteQuery'
 import { currentMonth, formatMonthLong, lastMonths } from '../lib/dates'
 import { formatMoney } from '../lib/money'
-import { byCategory, inMonth, monthlySeries, totals } from '../lib/stats'
+import { byCategory, inMonth, monthlySeries } from '../lib/stats'
 import type { Category, Transaction, TxType } from '../types'
 import { CategoryBreakdown } from './CategoryBreakdown'
 import { MonthlyChart } from './MonthlyChart'
@@ -18,8 +20,15 @@ export function ChartsView({ transactions, categories, month, onMonth }: Props) 
   const [range, setRange] = useState<6 | 12>(6)
   const [type, setType] = useState<TxType>('gasto')
   const end = month > currentMonth() ? currentMonth() : month
-  const series = monthlySeries(transactions, lastMonths(end, range))
+  const months = lastMonths(end, range)
   const monthList = inMonth(transactions, month)
+
+  // Datos de las gráficas consultados en las vistas de Supabase; sin conexión se calculan en el dispositivo.
+  const remoteSeries = useRemoteQuery(`serie:${months.join(',')}`, () => fetchMonthlySeries(months))
+  const remoteCategories = useRemoteQuery(`categorias:${month}:${type}`, () => fetchCategoryTotals(month, type))
+  const series = remoteSeries ?? monthlySeries(transactions, months)
+  const categoryItems = remoteCategories ?? byCategory(monthList, categories, type)
+  const categoryTotal = categoryItems.reduce((s, c) => s + c.amount, 0)
   const avgGasto = series.reduce((s, d) => s + d.gastos, 0) / series.length
 
   return (
@@ -41,6 +50,7 @@ export function ChartsView({ transactions, categories, month, onMonth }: Props) 
           </div>
         </header>
         <MonthlyChart data={series} selected={month} onSelect={onMonth} />
+        <DataSource remote={remoteSeries !== null} view="cg_resumen_mensual" />
       </section>
 
       <section className="card">
@@ -57,15 +67,30 @@ export function ChartsView({ transactions, categories, month, onMonth }: Props) 
         <div className="section-head section-head--inline">
           <MonthSwitcher value={month} onChange={onMonth} />
           <span className="muted small">
-            Total: {formatMoney(type === 'gasto' ? totals(monthList).gastos : totals(monthList).ingresos)}
+            Total: {formatMoney(categoryTotal)}
           </span>
         </div>
         <CategoryBreakdown
-          items={byCategory(monthList, categories, type)}
+          items={categoryItems}
           type={type}
           emptyText={`Sin ${type === 'gasto' ? 'gastos' : 'ingresos'} en ${formatMonthLong(month).toLowerCase()}.`}
         />
+        <DataSource remote={remoteCategories !== null} view="cg_totales_por_categoria" />
       </section>
     </div>
+  )
+}
+
+/** Indica de dónde salieron los datos de la gráfica. */
+function DataSource({ remote, view }: { remote: boolean; view: string }) {
+  return (
+    <p className="data-source">
+      <span className={`data-source__dot ${remote ? 'is-remote' : ''}`} aria-hidden="true" />
+      {remote ? (
+        <>Datos consultados en Supabase (vista <code>{view}</code>).</>
+      ) : (
+        'Calculado con los datos guardados en este dispositivo.'
+      )}
+    </p>
   )
 }

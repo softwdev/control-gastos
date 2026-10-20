@@ -1426,3 +1426,81 @@ svg {
   border: none;
   box-shadow: none;
 }
+
+/* ---------- Estado de sincronización con Supabase ---------- */
+
+.sync {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 16px;
+  padding: 4px 4px 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+.sync__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+
+.sync--warn .sync__dot { background: #d9a400; }
+.sync--error .sync__dot { background: var(--danger); }
+.sync--error { color: var(--danger); }
+
+.sync__dot.is-spinning {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% { opacity: 0.3; }
+}
+
+.sync__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sync__btn {
+  flex: none;
+  border: none;
+  border-radius: 999px;
+  padding: 3px 10px;
+  background: var(--brand-soft);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.data-source {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+
+.data-source code {
+  font-size: 0.75rem;
+}
+
+.data-source__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+
+.data-source__dot.is-remote {
+  background: var(--brand);
+}

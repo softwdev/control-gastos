@@ -1,6 +1,7 @@
 import { parseISO, todayISO, toISO } from './dates'
 import { formatMoney } from './money'
-import type { Category, Transaction, TxType } from '../types'
+import { isUuid } from './id'
+import { legacyCategoryId, type Category, type Transaction, type TxType } from '../types'
 
 export const LIMITS = {
   /** Monto máximo por movimiento, en centavos ($999,999.99) */
@@ -110,15 +111,13 @@ export function isStoredTransaction(value: unknown): value is Transaction {
   if (typeof value !== 'object' || value === null) return false
   const t = value as Record<string, unknown>
   return (
-    typeof t.id === 'string' &&
-    t.id.length > 0 &&
+    isUuid(t.id) &&
     isTxType(t.type) &&
     typeof t.amount === 'number' &&
     Number.isInteger(t.amount) &&
     t.amount > 0 &&
     t.amount <= LIMITS.amountMax &&
-    typeof t.categoryId === 'string' &&
-    t.categoryId.length > 0 &&
+    isUuid(t.categoryId) &&
     typeof t.description === 'string' &&
     t.description.length <= LIMITS.descriptionMax &&
     typeof t.date === 'string' &&
@@ -131,8 +130,7 @@ export function isStoredCategory(value: unknown): value is Category {
   if (typeof value !== 'object' || value === null) return false
   const c = value as Record<string, unknown>
   return (
-    typeof c.id === 'string' &&
-    c.id.length > 0 &&
+    isUuid(c.id) &&
     typeof c.name === 'string' &&
     cleanText(c.name).length > 0 &&
     c.name.length <= LIMITS.categoryMax &&
@@ -170,12 +168,22 @@ export function validateBackup(data: unknown, fallbackIds: Record<TxType, string
   if (!Array.isArray(obj.categories) || !Array.isArray(obj.transactions))
     return { ok: false, message: 'Al respaldo le faltan las categorías o los movimientos.' }
 
-  const categories = obj.categories.filter(isStoredCategory)
+  // Respaldos de la versión anterior usaban nombres como id en las categorías predeterminadas.
+  const withIds = (item: object, keys: string[]): Record<string, unknown> => {
+    const copy: Record<string, unknown> = { ...(item as Record<string, unknown>) }
+    for (const k of keys) if (typeof copy[k] === 'string') copy[k] = legacyCategoryId(copy[k] as string)
+    return copy
+  }
+  const categories = obj.categories
+    .map((c: unknown) => (typeof c === 'object' && c !== null ? withIds(c, ['id']) : c))
+    .filter(isStoredCategory)
   if (categories.length === 0) return { ok: false, message: 'El respaldo no tiene categorías válidas.' }
   const ids = new Set(categories.map((c) => c.id))
   if (ids.size !== categories.length) return { ok: false, message: 'El respaldo tiene categorías repetidas.' }
 
-  const valid = obj.transactions.filter(isStoredTransaction)
+  const valid = obj.transactions
+    .map((t: unknown) => (typeof t === 'object' && t !== null ? withIds(t, ['categoryId']) : t))
+    .filter(isStoredTransaction)
   const skipped = obj.transactions.length - valid.length
   // Si un movimiento apunta a una categoría que no existe, pasa a "Otros".
   const transactions = valid.map((t) => (ids.has(t.categoryId) ? t : { ...t, categoryId: fallbackIds[t.type] }))

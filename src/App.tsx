@@ -3,16 +3,28 @@ import { ChartsView } from './components/ChartsView'
 import { HistoryView } from './components/HistoryView'
 import { SettingsView } from './components/SettingsView'
 import { SummaryView } from './components/SummaryView'
+import { SyncBadge } from './components/SyncBadge'
 import { TransactionDialog } from './components/TransactionDialog'
+import {
+  addCategory,
+  addTransactions,
+  categoriesStore,
+  clearTransactions,
+  deleteCategory,
+  deleteTransaction,
+  importData,
+  restoreTransaction,
+  saveTransaction,
+  sync,
+  transactionsStore,
+} from './data/gastos'
 import { useInstallPrompt } from './hooks/useInstallPrompt'
-import { useLocalStorage } from './hooks/useLocalStorage'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 import { currentMonth } from './lib/dates'
-import { createId } from './lib/id'
 import { sampleTransactions } from './lib/sample'
+import { useStore } from './lib/store'
 import { totals } from './lib/stats'
-import { parseCategoryList, parseTransactionList } from './lib/validation'
-import { DEFAULT_CATEGORIES, FALLBACK_CATEGORY, type Category, type Transaction, type TransactionDraft, type TxType } from './types'
+import type { Transaction, TransactionDraft, TxType } from './types'
 
 type View = 'resumen' | 'historial' | 'graficas' | 'ajustes'
 
@@ -24,8 +36,9 @@ const NAV: { id: View; label: string; icon: string }[] = [
 ]
 
 export default function App() {
-  const [transactions, setTransactions] = useLocalStorage<Transaction[]>('control-gastos:movimientos:v1', [], parseTransactionList)
-  const [categories, setCategories] = useLocalStorage<Category[]>('control-gastos:categorias:v1', DEFAULT_CATEGORIES, parseCategoryList)
+  // Datos locales sincronizados con Supabase (ver src/data/gastos.ts)
+  const transactions = useStore(transactionsStore)
+  const categories = useStore(categoriesStore)
   const [view, setView] = useState<View>('resumen')
   const [month, setMonth] = useState(currentMonth)
   const [dialog, setDialog] = useState<{ open: boolean; tx: Transaction | null; type: TxType }>({ open: false, tx: null, type: 'gasto' })
@@ -44,19 +57,13 @@ export default function App() {
   const close = () => setDialog((d) => ({ ...d, open: false }))
 
   const save = (draft: TransactionDraft) => {
-    if (dialog.tx) {
-      const id = dialog.tx.id
-      setTransactions((list) => list.map((t) => (t.id === id ? { ...t, ...draft } : t)))
-    } else {
-      setTransactions((list) => [...list, { ...draft, id: createId(), createdAt: Date.now() }])
-    }
+    saveTransaction(draft, dialog.tx)
     close()
   }
 
   const remove = (id: string) => {
-    const tx = transactions.find((t) => t.id === id)
+    const tx = deleteTransaction(id)
     if (!tx) return
-    setTransactions((list) => list.filter((t) => t.id !== id))
     close()
     setUndo(tx)
     window.clearTimeout(undoTimer.current)
@@ -64,20 +71,11 @@ export default function App() {
   }
 
   const restore = () => {
-    if (undo) setTransactions((list) => [...list, undo])
+    if (undo) restoreTransaction(undo)
     setUndo(null)
   }
 
-  const addCategory = (c: Omit<Category, 'id'>) => setCategories((list) => [...list, { ...c, id: createId() }])
-
-  const deleteCategory = (id: string) => {
-    const cat = categories.find((c) => c.id === id)
-    if (!cat || cat.builtIn) return
-    setTransactions((list) => list.map((t) => (t.categoryId === id ? { ...t, categoryId: FALLBACK_CATEGORY[cat.type] } : t)))
-    setCategories((list) => list.filter((c) => c.id !== id))
-  }
-
-  const loadSample = () => setTransactions(sampleTransactions())
+  const loadSample = () => addTransactions(sampleTransactions())
 
   return (
     <div className="app">
@@ -109,11 +107,12 @@ export default function App() {
 
       {!online && (
         <div className="offline" role="status">
-          Sin conexión. Tu historial está guardado en este dispositivo y puedes seguir registrando movimientos.
+          Sin conexión. Tu historial está guardado en este dispositivo; los movimientos nuevos se subirán a la base de datos al recuperar la conexión.
         </div>
       )}
 
       <main className="main">
+        <SyncBadge engine={sync} />
         {view === 'resumen' &&
           (transactions.length === 0 ? (
             <div className="view">
@@ -152,11 +151,8 @@ export default function App() {
             transactions={transactions}
             onAddCategory={addCategory}
             onDeleteCategory={deleteCategory}
-            onImport={(data) => {
-              setCategories(data.categories)
-              setTransactions(data.transactions)
-            }}
-            onClear={() => setTransactions([])}
+            onImport={(data) => importData(data.categories, data.transactions)}
+            onClear={clearTransactions}
           />
         )}
       </main>

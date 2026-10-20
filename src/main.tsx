@@ -3,6 +3,11 @@ import { createRoot } from 'react-dom/client'
 import '@fontsource-variable/manrope'
 import './index.css'
 import App from './App.tsx'
+import { migrateFromV1, sync } from './data/gastos'
+
+// Convierte los datos de la versión anterior y empieza a sincronizar con Supabase.
+migrateFromV1()
+sync.start()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

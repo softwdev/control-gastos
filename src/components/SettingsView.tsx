@@ -149,7 +149,7 @@ export function SettingsView({ categories, transactions, onAddCategory, onDelete
           <h2>Respaldo de datos</h2>
         </header>
         <p className="muted">
-          Tus movimientos se guardan solo en este navegador. Descarga un respaldo para pasarlos a otro dispositivo o no perderlos si borras los datos del navegador.
+          Tus movimientos se guardan en la base de datos de Supabase y una copia en este dispositivo para usarlos sin conexión. El respaldo en JSON sirve para guardar una copia propia o pasar datos de otra versión.
         </p>
         <div className="actions-row">
           <button type="button" className="btn btn--ghost" onClick={exportData} disabled={transactions.length === 0}>Descargar respaldo</button>
@@ -167,7 +167,7 @@ export function SettingsView({ categories, transactions, onAddCategory, onDelete
           />
           {confirmClear ? (
             <span className="confirm">
-              <button type="button" className="btn btn--danger" onClick={() => { onClear(); setConfirmClear(false); setMessage('Se borraron todos los movimientos.') }}>
+              <button type="button" className="btn btn--danger" onClick={() => { onClear(); setConfirmClear(false); setMessage('Se borraron todos los movimientos, también de la base de datos.') }}>
                 Sí, borrar todo
               </button>
               <button type="button" className="btn btn--ghost" onClick={() => setConfirmClear(false)}>Cancelar</button>
